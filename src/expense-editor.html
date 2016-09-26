@@ -263,7 +263,7 @@
         },
 
         _getCaption: function(expense) {
-          if (expense._id) {
+          if (expense.$key/*_id*/) {
             return 'Edit Expense';
           } else {
             return 'Add Expense';
@@ -399,7 +399,7 @@
             this.$.total.value = expense.total.toFixed(2);
           }
 
-          this.$.delete.hidden = !(this.expense._id && this.expense.status === 'new');
+          this.$.delete.hidden = !(this.expense.$key/*_id && this.expense.status === 'new'*/);
 
           // Ensure that the scroll is returned to top on mobile
           this.async(function() {

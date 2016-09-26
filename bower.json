@@ -20,7 +20,10 @@
     "paper-checkbox": "polymerelements/paper-checkbox#^1.2.0",
     "qr-js": "^1.1.4",
     "paper-dialog": "polymerelements/paper-dialog#^1.0.4",
-    "iron-pages": "polymerelements/iron-pages#^1.0.7"
+    "iron-pages": "polymerelements/iron-pages#^1.0.7",
+	  "paper-tooltip": "PolymerElements/paper-tooltip#^1.1.2",
+    "polymerfire": "firebase/polymerfire#^0.9.5",
+    "app-storage": "PolymerElements/app-storage#^0.9.4"
   },
   "devDependencies": {
     "web-component-tester": "^4.0.0"

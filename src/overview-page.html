@@ -15,6 +15,11 @@
 <link rel="import" href="filters-toolbar.html">
 <link rel="import" href="moment-js.html">
 
+<!-- Edit -->
+<link rel="import" href="../bower_components/polymerfire/polymerfire.html">
+<link rel="import" href="custom/toolbar-panel.html">
+<!-- endEdit -->
+
 <dom-module id="overview-page">
   <template>
     <style>
@@ -104,24 +109,53 @@
         }
       }
     </style>
+		
+		<!-- Edit -->
+    <firebase-document id="document"
+											 app-name="app"
+											 xpath="[[editableItemId]]"
+											 data="{{editableItem}}"
+											 >
+    </firebase-document>
+		<!---->
+    <firebase-query id="query"
+										app-name="app"
+									  path="users/[[user.uid]]/items"
+									  data="{{expenses}}"
+										>
+    </firebase-query>
+    <!-- endEdit -->
 
+    <!--- ->
     <vaadin-pouchdb id="db" dbname="{{dbLocal}}" remote="{{dbRemote}}" data="{{expenses}}" status="{{status}}"></vaadin-pouchdb>
-
+    <!---->
     <app-location route="{{route}}" use-hash-as-path></app-location>
-    <app-route route="{{route}}" pattern="/:dbId" data="{{routeData}}" tail="{{subroute}}">
-    </app-route>
-
+    <app-route route="{{route}}" pattern="/:dbId" data="{{routeData}}" tail="{{subroute}}"></app-route>
+    <!--- ->
     <iron-ajax id="ajax" handle-as="json" on-response="_handleBackendResponse" on-error="_handleBackendError"></iron-ajax>
+    <!---->
 
     <paper-header-panel>
       <paper-toolbar>
-        <h1>Expense Manager</h1>
-        <iron-icon id="sync" icon="notification:sync" hidden$="[[_hideSyncIcon(status)]]" title="Syncing…"></iron-icon>
-
+        <h1>Expense Manager</h1>        
+       	<!--- ->
+				<iron-icon id="sync" icon="notification:sync" hidden$="[[_hideSyncIcon(status)]]" title="Syncing…"></iron-icon>
+       	<!---->
         <span class="flex"></span>
-
+       	<!--- ->
         <paper-button on-tap="_openInfoWindow" class="about-button">Info</paper-button>
         <paper-button on-tap="_logout" class="logout-button">Logout</paper-button>
+				<!---->
+				<!-- Edit -->
+				<toolbar-panel user="[[user]]"
+											 on-logout="_logout"
+											 on-info="_openInfoWindow"
+											 on-account="_openInfoWindow"
+											 on-settings="_openInfoWindow"
+											 >
+				</toolbar-panel>
+				<!-- endEdit -->
+				
       </paper-toolbar>
 
       <div class="content">
@@ -170,9 +204,15 @@
                 merchant: ''
               };
             },
-
             notify: true
-          }
+          },
+					// Edit
+					user: {
+            type: Object,
+            notify: true,
+          },
+					editableItem: Object,
+        	// endEdit
         },
 
         listeners: {
@@ -186,14 +226,16 @@
           '_showInfoDialog(loggedIn, _showInfo)',
           '_getUniqueMerchants(expenses.*)',
           '_calculateTotal(expenses.*)',
-          '_route(route)'
+          '_route(route)',
         ],
 
         ready: function() {
+					/** /
           Polymer.RenderStatus.afterNextRender(this, function() {
             this._setupDB();
           }.bind(this));
           this._db = this.$.db;
+					/**/
         },
 
         _calculateTotal: function() {
@@ -303,14 +345,65 @@
           return this.status !== 'syncing';
         },
 
+			  // Edit
+				get itemsPath() {
+          return [ 'users' , this.user.uid , 'items' ].join('/');
+        },
+				toEditableItem: function(e) {
+					// Eliminates keys with string characters unacceptable to Firebase
+					var editableItem = JSON.parse(JSON.stringify(e));
+          if(editableItem.$H) {
+					  editableItem.H = editableItem.$H;
+					  delete editableItem.$H;
+					}
+					if(editableItem.$key) {
+					  editableItem._id = editableItem.$key;
+					  delete editableItem.$key;
+					}
+					this.set('editableItem', editableItem);
+					if(editableItem._id/*_rev*/) {
+						this.set('editableItemId', editableItem._id/*_rev*/);
+					} else {
+						this.set('editableItemId', null);
+					}
+				},
+				// endEdit
+				
         _saveExpense: function(evt) {
           var expense = evt.detail;
-          this._db.save(expense);
+					// Edit
+					/**/
+					//console.log('expense', expense);
+					//console.log('user', this.user);
+					this.toEditableItem(expense);
+					var doc = this.$.document;
+					if(this.editableItemId) {
+					  doc.save(this.itemsPath, this.editableItemId);
+					} else {
+					  doc.save(this.itemsPath);
+					}
+					doc.reset();
+					/**/
+					// endEdit
+          //this._db.save(expense);
           this.fire('expenses-updated');
         },
         _deleteExpense: function(evt) {
           var expense = evt.detail;
-          this._db.remove(expense);
+          // Edit
+					/**/
+					//console.log('expense', expense);
+					//console.log('user', this.user);
+          this.toEditableItem(expense);
+					var doc = this.$.document;
+					//this.set('editableItemId', '-KQRZpTjrQg4MSTDYdPo');
+					doc.path = [ this.itemsPath , this.editableItemId ].join('/');
+					//console.log('doc.path', doc.path);
+					//console.dir(doc);
+					doc.destroy();
+					/**/
+					// endEdit
+          //this._db.remove(expense);
           this.fire('expenses-updated', {
             reason: 'deleted'
           });
